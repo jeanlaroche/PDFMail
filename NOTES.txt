@@ -13,3 +13,7 @@ https://www.reportlab.com/docs/reportlab-userguide.pdf
 - Use PdfFileWriter to add the resulting page, and save.
 
 
+EASIER:
+- Create a N-page pdf from the original by duplicating the page using PdfFileReader
+- Create a N-page pdf using fpdf with just the text.
+- Merge the two using page.mergePage
