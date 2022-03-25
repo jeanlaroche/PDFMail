@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 A very simple script that takes two png images that form a recto/version PDF document, and a list of addresses.
-The script creates a PDF file where each page includes the recto/version and has each address printed.
+The script creates a PDF file that can be used for a mailing.
 """
 
 import csv
@@ -12,7 +12,7 @@ __version__ = 1.0
 __license__ = "GPL"
 
 class PDF(FPDF):
-    def __init__(self,recto,verso,numPerPage=1,margin=0.25,xAdjust=0,yAdjust=0,fontSizeAdjust=0):
+    def __init__(self,recto,verso,numPerPage=1,margin=1,xAdjust=0,yAdjust=0,fontSizeAdjust=0):
         """
         :param recto:       path to the image file for the recto
         :param verso:       path to the image file for the verso
@@ -21,7 +21,7 @@ class PDF(FPDF):
         """
         if numPerPage not in [1,2]:
             raise Exception("numPerPage must be 1 or 2")
-        super().__init__(orientation = 'P' if numPerPage==1 else 'L', unit = 'in', format='letter')
+        super().__init__(orientation = 'P' if numPerPage==2 else 'L', unit = 'in', format='letter')
         self.addresses = []
         self.sortByZip = 0
         self.margin = margin
@@ -31,6 +31,7 @@ class PDF(FPDF):
         self.recto = recto
         self.verso = verso
         self.numPerPage = numPerPage
+        self.defFontSize = 16
 
     def setAddressList(self,csvFile,headerLines=1,sortByZip=0):
         """
@@ -76,12 +77,16 @@ class PDF(FPDF):
         self.add_page()
         # Sizes for the images.
         w = self.w-2*self.margin
-        h = (self.h-4*self.margin)/2
+        h = (self.h-2*self.margin)
         self.image(self.recto, x=self.margin, y=self.margin, w=w, h=h)
-        self.image(self.verso, x=self.margin, y=self.h/2+self.margin, w=w, h=h)
+        self.add_page()
+        # Sizes for the images.
+        w = self.w-2*self.margin
+        h = (self.h-2*self.margin)
+        self.image(self.verso, x=self.margin, y=self.margin, w=w, h=h)
         # Position of the address
-        xAddress = .6*self.w+self.margin + self.xAdjust
-        yAddress =  self.h * .8 + self.yAdjust
+        xAddress = .6*self.w + self.xAdjust
+        yAddress =  self.h * .55 + self.yAdjust
         # Width of the address box.
         w = self.w-self.margin - .5 - xAddress
 
@@ -91,30 +96,31 @@ class PDF(FPDF):
     def newPageTwo(self,address1,address2):
         """
         Adds a page to the PDF, for 2 prints per page.
-        :param address1: string to be used for the address on the left side
-        :param address2: string to be used for the address on the right side
+        :param address1: string to be used for the address on the top half
+        :param address2: string to be used for the address on the bottom half
         """
         self.add_page()
         # Sizes for the images.
-        w = (self.w-4*self.margin)/2
+        w = (self.w-2*self.margin)
         h = (self.h-4*self.margin)/2
         self.image(self.recto, x=self.margin, y=self.margin, w=w, h=h)
+        self.image(self.recto, x=self.margin, y=self.h/2+self.margin, w=w, h=h)
+
+        self.add_page()
+        self.image(self.verso, x=self.margin, y=self.margin, w=w, h=h)
         self.image(self.verso, x=self.margin, y=self.h/2+self.margin, w=w, h=h)
-        self.image(self.recto, x=self.w/2+self.margin, y=self.margin, w=w, h=h)
-        self.image(self.verso, x=self.w/2+self.margin, y=self.h/2+self.margin, w=w, h=h)
         # Position of the address
-        xAddress = .275*self.w+self.margin + self.xAdjust
-        yAddress =  self.h * .775 + self.yAdjust
+        xAddress = .6*self.w + self.xAdjust
+        yAddress =  self.h * .3 +  self.yAdjust
         # Width of the address box.
         w = self.w-self.margin - .5 - xAddress
 
         self.set_xy(x = xAddress, y = yAddress)
-        self.multi_cell(w = w, h = .15, txt= address1, border = 0, align= 'J', fill= False)
+        self.multi_cell(w = w, h = .2, txt= address1, border = 0, align= 'J', fill= False)
         # Position of the address
-        xAddress += self.w/2
-        yAddress =  self.h * .775 + self.yAdjust
+        yAddress += self.h/2
         self.set_xy(x = xAddress, y = yAddress)
-        self.multi_cell(w = w, h = .15, txt= address2, border = 0, align= 'J', fill= False)
+        self.multi_cell(w = w, h = .2, txt= address2, border = 0, align= 'J', fill= False)
 
     def createPDF(self,outFile,numPages=1000):
         """
@@ -123,7 +129,7 @@ class PDF(FPDF):
         :param numPages:    Maximum number of pages to create
         :return:
         """
-        self.set_font('Times', '', 12+self.fontSizeAdjust if self.numPerPage == 1 else 10+self.fontSizeAdjust)
+        self.set_font('Times', '', self.defFontSize+self.fontSizeAdjust if self.numPerPage == 1 else self.defFontSize-2+self.fontSizeAdjust)
         self.set_margins(left=self.margin, top=self.margin, right=self.margin)
         if self.numPerPage == 1:
             numPages = min(numPages,len(self.addresses))
@@ -133,8 +139,8 @@ class PDF(FPDF):
             # Add an extra empty address if we don't have an even number
             if len(self.addresses) %2 : self.addresses.append("")
             numPages = min(numPages,len(self.addresses)//2)
-            # This is so when the pages are physically cut in half, the left halves are in consecutive zip order, followed by
-            # the right halves
+            # This is so when the pages are physically cut in half, the top halves are in consecutive zip order, followed by
+            # the bottom halves
             if self.sortByZip:
                 address = zip(self.addresses[0:numPages],self.addresses[numPages:])
             else:
@@ -150,8 +156,8 @@ if __name__ == '__main__':
 Creates a mailing PDF by merging a pair of recto/verso images with an address list
 See https://pyfpdf.readthedocs.io/en/latest/reference/image/index.html for supported image formats
 The csv file is expected to have the following fields: "Name","Street","City","State","ZIP code" separated by commas
-If npp is 2, the page is in landscape format and there are two full prints (one left, one right) per page.
-If npp is 1, the page is in portait format and there is one full print per page.
+If npp is 1, the page is in landscape format and there is page for the recto and one page for the verso.
+If npp is 2, the page is in portrait format and there are two rectos on one page and two versos on the next.
 The -x and -y flags can be used to fine tune the position of the address.
 The -f flag can be used to fine tune font size.
 Example:
@@ -164,7 +170,7 @@ PDFMail.py -skip 1 -f -1 -npp 2 -o mail.pdf Recto.png Verso.png addresses.csv
     parser.add_argument('-sort', action='store_true', help='Sort zip codes')
     parser.add_argument('-np', type=int, default=10000, help='Number of pages to print')
     parser.add_argument('-skip', type=int, default=1, help='Number of lines to skip at start of csv file (default 1)')
-    parser.add_argument('-margin', type=float, default=.25, help='Margins in inch (default 0.25)')
+    parser.add_argument('-margin', type=float, default=.25, help='Margins in inch (default 0.5)')
     parser.add_argument('-x', type=float, default=0, help='Adjustment for horizontal position of address, in +/-inch (default 0)')
     parser.add_argument('-y', type=float, default=0, help='Adjustment for vertical position of address, in +/-inch (default 0)')
     parser.add_argument('-f', type=int, default=0, help='Adjustment for font size (default 0')
