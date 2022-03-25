@@ -1,0 +1,15 @@
+See this for an example of adding text to an existing pdf
+https://github.com/kForth/PdfMarker/blob/master/marker.py
+
+How it works:
+from PyPDF2 import PdfFileWriter, PdfFileReader
+https://pythonhosted.org/PyPDF2/
+- Use PdfFileReader to read the original page
+from reportlab.pdfgen import canvas
+https://www.reportlab.com/docs/reportlab-userguide.pdf
+
+- Use the canvas to create a page with just the text (it saves into a byteio, -> to pdf)
+- Use page.mergePage to merge the existing page with the created page, which is on top
+- Use PdfFileWriter to add the resulting page, and save.
+
+
