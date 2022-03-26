@@ -46,23 +46,13 @@ class PDF(FPDF):
         """
         self.sortByZip = sortByZip
         with open(csvFile, newline='') as csvfile:
-            addresses = csv.reader(csvfile, delimiter=',', quotechar='|')
+            addresses = csv.reader(csvfile, dialect='unix')
             allRows = []
             for ii,row in enumerate(addresses):
                 if ii < headerLines: continue
                 # Remove quotes and remove = sign.
                 row = [r.replace('"','').replace("=","") for r in row]
                 allRows.append(row)
-
-            # Deal with instances where the name includes a \n!
-            aR = []
-            for ii,row in enumerate(allRows):
-                if len(row) < 5:
-                    # print(f"Correcting {row[0]}")
-                    allRows[ii+1] = ["\n".join(row) + '\n'] + allRows[ii+1]
-                else:
-                    aR.append(row)
-            allRows = aR
 
             # Now, sort the rows by zip code
             if self.sortByZip:
@@ -161,6 +151,7 @@ class PDF(FPDF):
         else:
             for address1,address2 in addresses[0:numPages]:
                 self.newPageTwo(address1,address2,testMode)
+        print("Saving output ...")
         self.output(outFile, 'F')
         print(f"Output pdf written to {outFile}")
 
@@ -203,6 +194,7 @@ if __name__ == '__main__':
 Creates a mailing PDF by merging a pair of recto/verso images with an address list
 See https://pyfpdf.readthedocs.io/en/latest/reference/image/index.html for supported image formats
 The csv file is expected to have the following fields: "Name","Street","City","State","ZIP code" separated by commas
+and is expected to follow the "unix" convention, see "dialects" in the python csv module.
 If npp is 1, the page is in landscape format and there is page for the recto and one page for the verso.
 If npp is 2, the page is in portrait format and there are two rectos on one page and two versos on the next.
 The -x and -y flags can be used to fine tune the position of the address.
